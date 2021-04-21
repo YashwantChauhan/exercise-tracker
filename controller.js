@@ -51,7 +51,7 @@ async function getExercises(req, res) {
   if( from != undefined ){
 
     const [year,month,day] = from.split('-')
-    from = Date.UTC(year,month,day)
+    from = Date.UTC(year,month-1,day)
    
 
 
@@ -64,13 +64,13 @@ async function getExercises(req, res) {
   if( to != undefined ){
 
     const [year,month,day] = to.split('-')
-    to = Date.UTC(year,month,day)
+    to = Date.UTC(year,month-1,day)
     
 
 
   }
   else{
-     to = 1700000000000;
+     to = 170000000000000;
   }
 
   
@@ -79,14 +79,22 @@ async function getExercises(req, res) {
     
       let response = {
       username: result.username,
-      id: result.id,
+      _id: result.id,
       count: result.exercises.length,
-      logs: (result.exercises.filter(exercise=>{
+      log: (result.exercises.filter(exercise=>{
         if( Number(exercise.date) >= from && Number(exercise.date) <= to ){
           return 1;
         }
         return 0;
-      })).slice(0,limit)
+      })).map(exercise=>{
+      console.log(exercise)
+      let kyayaar = new Date(exercise.date).toUTCString()
+      kyayaar = kyayaar.slice(0,16) 
+      const regex = new RegExp('(...)(,)(...)(....)(.*)')
+      kyayaar = kyayaar.replace( regex, '$1$4$3$5')
+      exercise.date = kyayaar;
+      return exercise
+      }).slice(0,limit)
     }
 
     res.status(200).json(response)
@@ -110,32 +118,37 @@ async function addExercises(req, res) {
   }
   else{
 
-    const [year,month,day] = date.split('/')
-    date = Date.UTC(year,month,day)
+    const [year,month,day] = date.split('-')
+    
+    date = Date.UTC(year,month-1,day) 
+    console.log('=',date)
+    date = date + ((new Date().getTimezoneOffset())*60000);
+    console.log(date)
 
   }
 
 
-
+duration = Number(duration)
   const temp = {
     description, duration, date
   }
 
   const result = await exerciseModel.findById(id)
 
-  console.log(date);
   if (result != null) {
 
     result.exercises.push(temp)
     const result_i = await result.save()
-
-    console.log(result_i);
     if (result_i != undefined) {
 
+      let kyayaar = new Date(date).toUTCString()
+      kyayaar = kyayaar.slice(0,16) 
+       const regex = new RegExp('(...)(,)(...)(....)(.*)')
+       kyayaar = kyayaar.replace( regex, '$1$4$3$5')
       const temp_i = {
         _id: result_i.id,
         username: result_i.username,
-        date,
+        date : kyayaar,
         duration,
         description
 
